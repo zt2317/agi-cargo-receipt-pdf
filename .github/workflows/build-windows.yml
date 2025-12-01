@@ -38,7 +38,11 @@ jobs:
 
       - name: List dist folder
         run: |
-          ls -la dist
+          if (Test-Path dist) {
+            Get-ChildItem -Path dist -Force -Recurse
+          } else {
+            Write-Host 'dist not found'
+          }
         shell: pwsh
 
       - name: Upload artifact
