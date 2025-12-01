@@ -1,0 +1,49 @@
+name: Build Windows EXE
+
+# Manual trigger and on push to main
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    name: Build exe on Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path requirements.txt) { pip install -r requirements.txt } else { Write-Host 'no requirements.txt' }
+        shell: pwsh
+
+      - name: Install PyInstaller
+        run: |
+          pip install pyinstaller
+        shell: pwsh
+
+      - name: Build one-file exe
+        run: |
+          pyinstaller --noconfirm --onefile --name cargo_parser main.py
+        shell: pwsh
+
+      - name: List dist folder
+        run: |
+          ls -la dist
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo_parser-exe
+          path: dist/cargo_parser.exe
+
