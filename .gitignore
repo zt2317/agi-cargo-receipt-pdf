@@ -21,3 +21,9 @@ bin
 *.log
 *.gz
 *.pdf
+# sensitive output data (real MAWB numbers) and local build artifacts
+summary.csv
+dist/
+build/
+.venv/
+__pycache__/

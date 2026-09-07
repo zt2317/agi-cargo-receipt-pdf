@@ -13,22 +13,44 @@ except Exception:
     PdfReader = None
 
 
-def extract_text_from_pdf(path: Path):
-    """Extract text from each page of a PDF and return a list of page texts."""
-    if PdfReader is None:
-        raise RuntimeError("PyPDF2 is not available. Please install it: pip install PyPDF2")
+def _extract_with_pymupdf(path: Path):
+    """Extract text with PyMuPDF (fitz). Raises ImportError/RuntimeError if unavailable."""
+    import fitz  # PyMuPDF
 
-    reader = PdfReader(str(path))
     texts = []
-    for i, page in enumerate(reader.pages):
-        try:
-            text = page.extract_text()
-        except Exception:
-            text = None
-        if text is None:
-            text = ""
-        texts.append(text)
+    with fitz.open(str(path)) as doc:
+        for page in doc:
+            texts.append(page.get_text() or "")
     return texts
+
+
+def extract_text_from_pdf(path: Path):
+    """Extract text from each page of a PDF and return a list of page texts.
+
+    Uses PyPDF2 first; if it fails to open/parse the file (e.g. UnicodeDecodeError
+    on malformed PDFs), falls back to PyMuPDF which is much more tolerant.
+    """
+    if PdfReader is not None:
+        try:
+            reader = PdfReader(str(path))
+            texts = []
+            for page in reader.pages:
+                try:
+                    text = page.extract_text()
+                except Exception:
+                    text = None
+                texts.append(text or "")
+            return texts
+        except Exception as e:
+            # PyPDF2 failed to parse this file; try PyMuPDF as fallback
+            pypdf2_err = e
+    else:
+        pypdf2_err = RuntimeError("PyPDF2 is not available. Please install it: pip install PyPDF2")
+
+    try:
+        return _extract_with_pymupdf(path)
+    except ImportError:
+        raise pypdf2_err
 
 
 def split_line_by_separators(line: str, separators: str):
